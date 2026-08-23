@@ -1,17 +1,16 @@
-# Local Kafé — V2.1 Pin Placement Fix
+# Local Kafé — V2.2 Café Viewing + Type Markers
 
-This patch changes the add-café flow so manual location placement works properly.
+Preserves the V2.1 manual/GPS pin flow and adds:
+- ☕ Coffee Café
+- 🥐 Pastry Café
+- 🍽️ Restaurant Café
+- 🎲 Board Game Café
+- 🪑 Street Café
+- 🚚 Mobile Café
+- 🫘 Specialty Café
+- ✨ Other / Hybrid
+- Type-specific map markers
+- Marker preview
+- View Café profile with address, landmark and coordinates
 
-## New flow
-1. Tap `+`
-2. The map stays fully visible
-3. Pan/zoom to any remembered area
-4. Tap the exact location on the map
-5. A draggable draft pin appears
-6. Tap `Next`
-7. Enter café details
-8. Save
-
-`Use my location` remains available as an optional shortcut, not a requirement.
-
-This specifically supports cases where you saw a café earlier, passed it while riding in a vehicle, or remembered its location later.
+Next planned build: individual visit journal.
