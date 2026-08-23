@@ -24,31 +24,20 @@
     <section id="auth-card" class="card">
       <h2>Welcome</h2>
       <p class="muted">Sign in or create your Local Kafé account.</p>
-      <form id="auth-form">
-        <label>
-          Display name
-          <input id="display-name" type="text" autocomplete="name" placeholder="Rylle">
-        </label>
-        <label>
-          Email
-          <input id="email" type="email" autocomplete="email" required placeholder="you@example.com">
-        </label>
-        <label>
-          Password
-          <input id="password" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters">
-        </label>
-        <div class="actions">
-          <button id="sign-in" type="button">Sign in</button>
-          <button id="sign-up" type="button" class="secondary">Create account</button>
-        </div>
-      </form>
+      <label>Display name<input id="display-name" type="text" autocomplete="name" placeholder="Rylle"></label>
+      <label>Email<input id="email" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+      <label>Password<input id="password" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters"></label>
+      <div class="actions">
+        <button id="sign-in" type="button">Sign in</button>
+        <button id="sign-up" type="button" class="secondary">Create account</button>
+      </div>
       <p id="auth-message" class="message" aria-live="polite"></p>
     </section>
 
     <section id="app-card" class="hidden">
       <div class="topbar card">
         <div>
-          <span class="eyebrow">Kafé Hunters</span>
+          <span class="eyebrow" id="group-label">Kafé Hunters</span>
           <h2 id="user-name">Local Kafé member</h2>
         </div>
         <button id="sign-out" type="button" class="ghost small">Sign out</button>
@@ -57,10 +46,7 @@
       <section id="group-empty" class="card hidden">
         <h3>Create your café circle</h3>
         <p class="muted">This becomes the private group whose cafés and visits everyone can share.</p>
-        <label>
-          Group name
-          <input id="group-name" type="text" value="Kafé Hunters" maxlength="80">
-        </label>
+        <label>Group name<input id="group-name" type="text" value="Kafé Hunters" maxlength="80"></label>
         <button id="create-group" type="button">Create group</button>
       </section>
 
@@ -68,6 +54,18 @@
         <div class="map-card">
           <div id="map"></div>
           <button id="add-cafe-btn" class="fab" type="button" aria-label="Add café">+</button>
+
+          <div id="placement-panel" class="placement-panel hidden">
+            <div>
+              <strong>Place the café pin</strong>
+              <p>Move the map, then tap anywhere to place the pin. You can drag the pin afterward.</p>
+            </div>
+            <div class="placement-actions">
+              <button id="placement-cancel" type="button" class="ghost">Cancel</button>
+              <button id="placement-location" type="button" class="secondary">📍 Use my location</button>
+              <button id="placement-next" type="button" disabled>Next</button>
+            </div>
+          </div>
         </div>
 
         <div class="map-toolbar">
@@ -81,21 +79,22 @@
   </main>
 
   <dialog id="cafe-dialog">
-    <form method="dialog" id="cafe-form" class="dialog-card">
+    <form id="cafe-form" class="dialog-card">
       <div class="dialog-head">
         <div>
-          <span class="eyebrow">New café pin</span>
-          <h2>Add café</h2>
+          <span class="eyebrow">New café</span>
+          <h2>Add café details</h2>
         </div>
         <button id="close-dialog" class="ghost icon-btn" type="button">✕</button>
       </div>
 
-      <p class="muted">Tap the map to place the pin, or use your current location.</p>
+      <div class="coords">
+        <span>Latitude: <strong id="lat-display">—</strong></span>
+        <span>Longitude: <strong id="lng-display">—</strong></span>
+        <button id="change-pin" type="button" class="link-btn">Change pin location</button>
+      </div>
 
-      <label>
-        Café name
-        <input id="cafe-name" type="text" required placeholder="Little Bean Café">
-      </label>
+      <label>Café name<input id="cafe-name" type="text" required placeholder="Little Bean Café"></label>
 
       <label>
         Type
@@ -108,26 +107,12 @@
         </select>
       </label>
 
-      <label>
-        Address / area
-        <input id="cafe-address" type="text" placeholder="Optional">
-      </label>
-
-      <label>
-        Landmark
-        <input id="cafe-landmark" type="text" placeholder="Optional">
-      </label>
-
-      <div class="coords">
-        <span>Latitude: <strong id="lat-display">—</strong></span>
-        <span>Longitude: <strong id="lng-display">—</strong></span>
-      </div>
+      <label>Address / area<input id="cafe-address" type="text" placeholder="Optional"></label>
+      <label>Landmark<input id="cafe-landmark" type="text" placeholder="Optional"></label>
 
       <div class="actions">
-        <button id="use-location" type="button" class="secondary">Use my location</button>
         <button id="save-cafe" type="submit">Save café</button>
       </div>
-
       <p id="dialog-message" class="message" aria-live="polite"></p>
     </form>
   </dialog>

@@ -1,23 +1,17 @@
-# Local Kafé — V2 Map
+# Local Kafé — V2.1 Pin Placement Fix
 
-Private shared café journal and map.
+This patch changes the add-café flow so manual location placement works properly.
 
-## V2 features
-- Supabase email/password auth
-- Private group access via RLS
-- Shared Leaflet + OpenStreetMap map
-- Load all cafés saved by the group
-- Add a café manually even if it is not listed by a map provider
-- Use phone GPS for a new café
-- Tap map / drag pin to correct a café location
-- Save café name, type, address/area, and landmark
+## New flow
+1. Tap `+`
+2. The map stays fully visible
+3. Pan/zoom to any remembered area
+4. Tap the exact location on the map
+5. A draggable draft pin appears
+6. Tap `Next`
+7. Enter café details
+8. Save
 
-## How the map works
-The base map is OpenStreetMap. Café pins come from the Local Kafé `cafes` table in Supabase, so a café does not need to exist in Google Maps, Waze, or OpenStreetMap first.
+`Use my location` remains available as an optional shortcut, not a requirement.
 
-## Next
-- Café details page
-- Visit history
-- Individual notes per visit
-- Orders and ratings
-- Want-to-visit list
+This specifically supports cases where you saw a café earlier, passed it while riding in a vehicle, or remembered its location later.
