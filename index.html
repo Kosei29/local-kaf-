@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#6b4f3b">
+  <meta name="description" content="Private shared café journal and map.">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Local Kafé</title>
+</head>
+<body>
+  <main class="shell">
+    <section class="brand">
+      <div class="logo">☕</div>
+      <div>
+        <h1>Local Kafé</h1>
+        <p>Your private shared café journal.</p>
+      </div>
+    </section>
+
+    <section id="auth-card" class="card">
+      <h2>Welcome</h2>
+      <p class="muted">Sign in or create your Local Kafé account.</p>
+
+      <form id="auth-form">
+        <label>
+          Display name
+          <input id="display-name" type="text" autocomplete="name" placeholder="Rylle">
+        </label>
+
+        <label>
+          Email
+          <input id="email" type="email" autocomplete="email" required placeholder="you@example.com">
+        </label>
+
+        <label>
+          Password
+          <input id="password" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters">
+        </label>
+
+        <div class="actions">
+          <button id="sign-in" type="button">Sign in</button>
+          <button id="sign-up" type="button" class="secondary">Create account</button>
+        </div>
+      </form>
+      <p id="auth-message" class="message" aria-live="polite"></p>
+    </section>
+
+    <section id="app-card" class="card hidden">
+      <div class="row">
+        <div>
+          <span class="eyebrow">Signed in as</span>
+          <h2 id="user-name">Local Kafé member</h2>
+          <p id="user-email" class="muted"></p>
+        </div>
+        <button id="sign-out" type="button" class="ghost">Sign out</button>
+      </div>
+
+      <div id="group-empty" class="group-panel hidden">
+        <h3>Create your café circle</h3>
+        <p class="muted">This becomes the private group whose cafés and visits everyone can share.</p>
+        <label>
+          Group name
+          <input id="group-name" type="text" value="Local Kafé" maxlength="80">
+        </label>
+        <button id="create-group" type="button">Create group</button>
+      </div>
+
+      <div id="group-ready" class="group-panel hidden">
+        <span class="eyebrow">Your group</span>
+        <h3 id="current-group-name">Local Kafé</h3>
+        <p class="success">✓ Authentication and private group access are working.</p>
+
+        <div class="next-box">
+          <strong>Next build step</strong>
+          <p>Shared café map + manual pin placement.</p>
+        </div>
+      </div>
+
+      <p id="app-message" class="message" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
