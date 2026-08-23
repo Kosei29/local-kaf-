@@ -2,6 +2,7 @@
   "name": "Local Kaf\u00e9",
   "short_name": "Local Kaf\u00e9",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f7f2ec",
   "theme_color": "#6b4f3b",

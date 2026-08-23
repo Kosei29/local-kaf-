@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#6b4f3b">
   <meta name="description" content="Private shared café journal and map.">
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="./styles.css">
   <title>Local Kafé</title>
 </head>
@@ -14,7 +15,7 @@
   <main class="shell">
     <section class="brand">
       <div class="logo">☕</div>
-      <div>
+      <div class="brand-copy">
         <h1>Local Kafé</h1>
         <p>Your private shared café journal.</p>
       </div>
@@ -23,23 +24,19 @@
     <section id="auth-card" class="card">
       <h2>Welcome</h2>
       <p class="muted">Sign in or create your Local Kafé account.</p>
-
       <form id="auth-form">
         <label>
           Display name
           <input id="display-name" type="text" autocomplete="name" placeholder="Rylle">
         </label>
-
         <label>
           Email
           <input id="email" type="email" autocomplete="email" required placeholder="you@example.com">
         </label>
-
         <label>
           Password
           <input id="password" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters">
         </label>
-
         <div class="actions">
           <button id="sign-in" type="button">Sign in</button>
           <button id="sign-up" type="button" class="secondary">Create account</button>
@@ -48,41 +45,94 @@
       <p id="auth-message" class="message" aria-live="polite"></p>
     </section>
 
-    <section id="app-card" class="card hidden">
-      <div class="row">
+    <section id="app-card" class="hidden">
+      <div class="topbar card">
         <div>
-          <span class="eyebrow">Signed in as</span>
+          <span class="eyebrow">Kafé Hunters</span>
           <h2 id="user-name">Local Kafé member</h2>
-          <p id="user-email" class="muted"></p>
         </div>
-        <button id="sign-out" type="button" class="ghost">Sign out</button>
+        <button id="sign-out" type="button" class="ghost small">Sign out</button>
       </div>
 
-      <div id="group-empty" class="group-panel hidden">
+      <section id="group-empty" class="card hidden">
         <h3>Create your café circle</h3>
         <p class="muted">This becomes the private group whose cafés and visits everyone can share.</p>
         <label>
           Group name
-          <input id="group-name" type="text" value="Local Kafé" maxlength="80">
+          <input id="group-name" type="text" value="Kafé Hunters" maxlength="80">
         </label>
         <button id="create-group" type="button">Create group</button>
-      </div>
+      </section>
 
-      <div id="group-ready" class="group-panel hidden">
-        <span class="eyebrow">Your group</span>
-        <h3 id="current-group-name">Local Kafé</h3>
-        <p class="success">✓ Authentication and private group access are working.</p>
-
-        <div class="next-box">
-          <strong>Next build step</strong>
-          <p>Shared café map + manual pin placement.</p>
+      <section id="map-view" class="hidden">
+        <div class="map-card">
+          <div id="map"></div>
+          <button id="add-cafe-btn" class="fab" type="button" aria-label="Add café">+</button>
         </div>
-      </div>
+
+        <div class="map-toolbar">
+          <button id="locate-btn" class="secondary" type="button">📍 My location</button>
+          <span id="cafe-count" class="muted">0 cafés</span>
+        </div>
+      </section>
 
       <p id="app-message" class="message" aria-live="polite"></p>
     </section>
   </main>
 
+  <dialog id="cafe-dialog">
+    <form method="dialog" id="cafe-form" class="dialog-card">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">New café pin</span>
+          <h2>Add café</h2>
+        </div>
+        <button id="close-dialog" class="ghost icon-btn" type="button">✕</button>
+      </div>
+
+      <p class="muted">Tap the map to place the pin, or use your current location.</p>
+
+      <label>
+        Café name
+        <input id="cafe-name" type="text" required placeholder="Little Bean Café">
+      </label>
+
+      <label>
+        Type
+        <select id="cafe-category">
+          <option value="cafe">Café</option>
+          <option value="bakery_cafe">Bakery café</option>
+          <option value="restaurant_cafe">Restaurant café</option>
+          <option value="chain_cafe">Chain café</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+
+      <label>
+        Address / area
+        <input id="cafe-address" type="text" placeholder="Optional">
+      </label>
+
+      <label>
+        Landmark
+        <input id="cafe-landmark" type="text" placeholder="Optional">
+      </label>
+
+      <div class="coords">
+        <span>Latitude: <strong id="lat-display">—</strong></span>
+        <span>Longitude: <strong id="lng-display">—</strong></span>
+      </div>
+
+      <div class="actions">
+        <button id="use-location" type="button" class="secondary">Use my location</button>
+        <button id="save-cafe" type="submit">Save café</button>
+      </div>
+
+      <p id="dialog-message" class="message" aria-live="polite"></p>
+    </form>
+  </dialog>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

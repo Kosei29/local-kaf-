@@ -1,32 +1,23 @@
-# Local Kafé PWA — Auth Starter
+# Local Kafé — V2 Map
 
-This starter connects directly to the Supabase project **Local Kafé**.
+Private shared café journal and map.
 
-## What works
-- Email/password sign-up
-- Email/password sign-in
-- Automatic `profiles` row creation via the database trigger
-- Creation of the first private group
-- PWA manifest + service worker
-- Installable shell once served over HTTPS (or localhost)
+## V2 features
+- Supabase email/password auth
+- Private group access via RLS
+- Shared Leaflet + OpenStreetMap map
+- Load all cafés saved by the group
+- Add a café manually even if it is not listed by a map provider
+- Use phone GPS for a new café
+- Tap map / drag pin to correct a café location
+- Save café name, type, address/area, and landmark
 
-## Run locally
-You need a local HTTP server; opening `index.html` directly as `file://` is not enough for service workers.
-
-### Python
-```bash
-python -m http.server 8080
-```
-Then visit:
-`http://localhost:8080`
-
-### VS Code
-You can also use a local static server extension.
-
-## Important
-Supabase email confirmation is enabled by default on hosted projects. After signing up, check the email inbox and confirm the account before signing in.
-
-The client uses the Supabase **publishable** key, which is intended for frontend use. Never place a Supabase secret/service-role key in this project.
+## How the map works
+The base map is OpenStreetMap. Café pins come from the Local Kafé `cafes` table in Supabase, so a café does not need to exist in Google Maps, Waze, or OpenStreetMap first.
 
 ## Next
-Add the shared café map and manual pin placement.
+- Café details page
+- Visit history
+- Individual notes per visit
+- Orders and ratings
+- Want-to-visit list
