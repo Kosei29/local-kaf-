@@ -1,16 +1,22 @@
-# Local Kafé — V2.2 Café Viewing + Type Markers
+# Local Kafé — V2.3 Individual Visit Journal
 
-Preserves the V2.1 manual/GPS pin flow and adds:
-- ☕ Coffee Café
-- 🥐 Pastry Café
-- 🍽️ Restaurant Café
-- 🎲 Board Game Café
-- 🪑 Street Café
-- 🚚 Mobile Café
-- 🫘 Specialty Café
-- ✨ Other / Hybrid
-- Type-specific map markers
-- Marker preview
-- View Café profile with address, landmark and coordinates
+Private shared café journal and map for the Kafé Hunters group.
 
-Next planned build: individual visit journal.
+## Current features
+- Shared authenticated café map
+- Manual pin placement anywhere on the map
+- Current-location pin placement
+- Café categories with type-specific markers
+- Café profile with address, landmark and coordinates
+- Shared café viewing for group members
+- Individual visit journal for every café
+- Each visit stores its own date/time, author and notes
+- All group members can read the visit history
+- Visit entries are protected by Supabase Row Level Security
+
+## Next build ideas
+- Visit editing/deletion
+- Photos per visit
+- Orders / favorite items
+- Simple personal or group ratings
+- Café discovery/search and filters
