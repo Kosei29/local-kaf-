@@ -41,8 +41,8 @@ window.openCafeProfile=async id=>{
   q('#view-address').textContent=c.address_text||'Not added';q('#view-landmark').textContent=c.landmark||'Not added';
   q('#view-coords').textContent=`${Number(c.latitude).toFixed(6)}, ${Number(c.longitude).toFixed(6)}`;
   q('#visit-note').value='';q('#visit-date').value=new Date().toISOString().slice(0,16);
-  const{data:creator}=c.created_by?await supabase.from('profiles').select('display_name').eq('id',c.created_by).maybeSingle():{data:null};
-  q('#view-added-by').textContent=creator?.display_name||'Local Kafé member';
+  const{data:creator,error:creatorError}=await supabase.rpc('get_cafe_creator_name',{target_cafe_id:c.id});
+  q('#view-added-by').textContent=creatorError?'Local Kafé member':(creator||'Local Kafé member');
   await loadVisits(id);viewDialog.showModal();
 };
 
