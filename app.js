@@ -37,23 +37,10 @@ window.openCafeProfile=async id=>{
   selectedCafeId=id;
   const t=cafeType(c.category);
   q('#view-type').textContent=`${t.icon} ${t.label}`;q('#view-name').textContent=c.name;q('#view-icon').textContent=t.icon;
-  q('#view-added-by').textContent='Loading…';
+  q('#view-added-by').textContent=c.creator_name||'Local Kafé member';
   q('#view-address').textContent=c.address_text||'Not added';q('#view-landmark').textContent=c.landmark||'Not added';
   q('#view-coords').textContent=`${Number(c.latitude).toFixed(6)}, ${Number(c.longitude).toFixed(6)}`;
   q('#visit-note').value='';q('#visit-date').value=new Date().toISOString().slice(0,16);
-
-  // Prefer the creator ID already returned with the café, then resolve it through
-  // the shared profiles policy. The RPC remains as a fallback for older rows.
-  let creatorName=null;
-  if(c.created_by){
-    const{data:creator,error:profileError}=await supabase.from('profiles').select('display_name').eq('id',c.created_by).maybeSingle();
-    if(!profileError) creatorName=creator?.display_name||null;
-  }
-  if(!creatorName){
-    const{data:creator,error:creatorError}=await supabase.rpc('get_cafe_creator_name',{target_cafe_id:c.id});
-    if(!creatorError) creatorName=creator||null;
-  }
-  q('#view-added-by').textContent=creatorName||'Local Kafé member';
   await loadVisits(id);viewDialog.showModal();
 };
 
@@ -68,7 +55,7 @@ async function loadVisits(cafeId){
 
 async function loadCafes(){
   if(!currentGroup||!map)return;
-  const{data,error}=await supabase.from('cafes').select('id,name,category,latitude,longitude,address_text,landmark,created_at,created_by').eq('group_id',currentGroup.id).order('created_at',{ascending:false});
+  const{data,error}=await supabase.rpc('get_group_cafes_with_creators',{target_group_id:currentGroup.id});
   if(error)return showMessage(appMessage,error.message);
   cafeLayer.clearLayers();cafesById={};
   for(const cafe of data||[]){
