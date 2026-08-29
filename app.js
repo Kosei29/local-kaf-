@@ -1,105 +1,84 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/+esm';
-
-const SUPABASE_URL="https://reybalitebntwzkmujeo.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY="sb_publishable_mz0eHqZgfIxoqAAx9hFCJg_3ZsKBJjb";
+const SUPABASE_URL='https://reybalitebntwzkmujeo.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_mz0eHqZgfIxoqAAx9hFCJg_3ZsKBJjb';
 const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-
-let currentUser=null,currentGroup=null,map=null,cafeLayer=null,draftMarker=null,selectedLatLng=null,placementMode=false,cafesById={};
-let selectedCafeId=null;
-
-const TYPES={
-  cafe:{label:'Coffee Café',icon:'☕'},bakery_cafe:{label:'Pastry Café',icon:'🥐'},
-  restaurant_cafe:{label:'Restaurant Café',icon:'🍽️'},board_game_cafe:{label:'Board Game Café',icon:'🎲'},
-  street_cafe:{label:'Street Café',icon:'🪑'},mobile_cafe:{label:'Mobile Café',icon:'🚚'},
-  specialty_cafe:{label:'Specialty Café',icon:'🫘'},chain_cafe:{label:'Coffee Café',icon:'☕'},other:{label:'Other / Hybrid',icon:'✨'}
-};
-
+let currentUser=null,currentGroup=null,currentGroups=[],isPlatformAdmin=false,map=null,cafeLayer=null,draftMarker=null,selectedLatLng=null,placementMode=false,cafesById={},selectedCafeId=null;
+const TYPES={cafe:{label:'Coffee Café',icon:'☕'},bakery_cafe:{label:'Pastry Café',icon:'🥐'},restaurant_cafe:{label:'Restaurant Café',icon:'🍽️'},board_game_cafe:{label:'Board Game Café',icon:'🎲'},street_cafe:{label:'Street Café',icon:'🪑'},mobile_cafe:{label:'Mobile Café',icon:'🚚'},specialty_cafe:{label:'Specialty Café',icon:'🫘'},chain_cafe:{label:'Coffee Café',icon:'☕'},other:{label:'Other / Hybrid',icon:'✨'}};
 const q=s=>document.querySelector(s);
 const authCard=q('#auth-card'),appCard=q('#app-card'),groupEmpty=q('#group-empty'),mapView=q('#map-view');
 const authMessage=q('#auth-message'),appMessage=q('#app-message'),dialogMessage=q('#dialog-message');
-const cafeDialog=q('#cafe-dialog'),viewDialog=q('#view-dialog'),visitDialog=q('#visit-dialog');
+const cafeDialog=q('#cafe-dialog'),viewDialog=q('#view-dialog'),visitDialog=q('#visit-dialog'),groupDialog=q('#group-dialog');
 const placementPanel=q('#placement-panel'),addCafeBtn=q('#add-cafe-btn'),placementNext=q('#placement-next');
-
-function showMessage(el,text,success=false){el.textContent=text||'';el.style.color=success?'#2f6a42':'#7b3f2c'}
+function showMessage(el,text,success=false){if(!el)return;el.textContent=text||'';el.style.color=success?'#2f6a42':'#7b3f2c'}
 function setBusy(busy){document.querySelectorAll('button').forEach(btn=>btn.disabled=busy);if(placementMode&&selectedLatLng)placementNext.disabled=false}
 function cafeType(c){return TYPES[c]||TYPES.other}
 function markerIcon(c){const t=cafeType(c);return L.divIcon({className:'kafe-marker',html:`<div class="kafe-marker-inner"><span>${t.icon}</span></div>`,iconSize:[42,42],iconAnchor:[21,39],popupAnchor:[0,-36]})}
 function ensureMap(){if(map)return;map=L.map('map',{zoomControl:true}).setView([14.5995,120.9842],11);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);cafeLayer=L.layerGroup().addTo(map);map.on('click',e=>{if(placementMode)selectDraftLocation(e.latlng.lat,e.latlng.lng)})}
-function beginPlacement(){placementMode=true;selectedLatLng=null;if(draftMarker){draftMarker.remove();draftMarker=null}placementNext.disabled=true;placementPanel.classList.remove('hidden');addCafeBtn.classList.add('hidden');showMessage(appMessage,'Tap anywhere on the map to place the café pin.',true)}
+function beginPlacement(){if(!currentGroup)return showMessage(appMessage,'Select a group first.');placementMode=true;selectedLatLng=null;if(draftMarker){draftMarker.remove();draftMarker=null}placementNext.disabled=true;placementPanel.classList.remove('hidden');addCafeBtn.classList.add('hidden');showMessage(appMessage,'Tap anywhere on the map to place the café pin.',true)}
 function cancelPlacement(){placementMode=false;selectedLatLng=null;if(draftMarker){draftMarker.remove();draftMarker=null}placementPanel.classList.add('hidden');addCafeBtn.classList.remove('hidden');showMessage(appMessage,'')}
 function selectDraftLocation(lat,lng){selectedLatLng={lat,lng};placementNext.disabled=false;if(draftMarker)draftMarker.remove();draftMarker=L.marker([lat,lng],{draggable:true}).addTo(map);draftMarker.on('dragend',()=>{const p=draftMarker.getLatLng();selectedLatLng={lat:p.lat,lng:p.lng}})}
 function openDetailsDialog(){if(!selectedLatLng)return;placementMode=false;placementPanel.classList.add('hidden');addCafeBtn.classList.remove('hidden');q('#lat-display').textContent=selectedLatLng.lat.toFixed(6);q('#lng-display').textContent=selectedLatLng.lng.toFixed(6);showMessage(dialogMessage,'');cafeDialog.showModal()}
 function useCurrentLocation(forPlacement=true){if(!navigator.geolocation)return showMessage(appMessage,'This browser does not support location services.');navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude,lng=pos.coords.longitude;if(forPlacement){selectDraftLocation(lat,lng);map.setView([lat,lng],17)}else map.setView([lat,lng],16)},err=>showMessage(appMessage,`Could not get your location: ${err.message}`),{enableHighAccuracy:true,timeout:12000,maximumAge:30000})}
 function escapeHtml(text=''){return String(text).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
-
-window.openCafeProfile=async id=>{
-  const c=cafesById[id];if(!c)return;
-  selectedCafeId=id;
-  const t=cafeType(c.category);
-  q('#view-type').textContent=`${t.icon} ${t.label}`;q('#view-name').textContent=c.name;q('#view-icon').textContent=t.icon;
-  q('#view-added-by').textContent=c.creator_name||'Local Kafé member';
-  q('#view-address').textContent=c.address_text||'Not added';q('#view-landmark').textContent=c.landmark||'Not added';
-  q('#view-coords').textContent=`${Number(c.latitude).toFixed(6)}, ${Number(c.longitude).toFixed(6)}`;
-  q('#visit-note').value='';q('#visit-date').value=new Date().toISOString().slice(0,16);
-  await loadVisits(id);viewDialog.showModal();
-};
-
-async function loadVisits(cafeId){
-  const list=q('#visits-list');list.innerHTML='<p class="muted">Loading visits…</p>';
-  const{data,error}=await supabase.from('cafe_visits').select('id,visited_by,visited_at,note,created_at,profiles(display_name)').eq('cafe_id',cafeId).order('visited_at',{ascending:false});
-  if(error){list.innerHTML='';showMessage(appMessage,error.message);return}
-  q('#visit-count').textContent=`${data?.length||0} visit${data?.length===1?'':'s'}`;
-  if(!data?.length){list.innerHTML='<p class="muted">No visits recorded yet. Be the first to log one.</p>';return}
-  list.innerHTML=data.map(v=>{const name=escapeHtml(v.profiles?.display_name||'Local Kafé member');const note=escapeHtml(v.note);const date=new Date(v.visited_at).toLocaleString([], {dateStyle:'medium',timeStyle:'short'});return `<article class="visit-card"><div class="visit-head"><strong>${name}</strong><time>${escapeHtml(date)}</time></div><p>${note}</p></article>`}).join('');
-}
-
-async function loadCafes(){
-  if(!currentGroup||!map)return;
-  const{data,error}=await supabase.rpc('get_group_cafes_with_creators',{target_group_id:currentGroup.id});
+function roleLabel(role){return role==='owner'?'👑 Owner':role==='admin'?'🛡️ Admin':'👤 Member'}
+async function checkPlatformAdmin(){const{data,error}=await supabase.rpc('is_platform_admin');isPlatformAdmin=!error&&data===true;q('#platform-badge').classList.toggle('hidden',!isPlatformAdmin)}
+async function loadGroups(){
+  const{data:memberships,error}=await supabase.from('group_members').select('role, groups(id,name,owner_id)').eq('user_id',currentUser.id).order('role');
   if(error)return showMessage(appMessage,error.message);
-  cafeLayer.clearLayers();cafesById={};
-  for(const cafe of data||[]){
-    cafesById[cafe.id]=cafe;const t=cafeType(cafe.category);const parts=[t.label,cafe.address_text,cafe.landmark?`Near ${cafe.landmark}`:null].filter(Boolean);
-    L.marker([Number(cafe.latitude),Number(cafe.longitude)],{icon:markerIcon(cafe.category)}).addTo(cafeLayer).bindPopup(`<div class="popup-title">${t.icon} ${escapeHtml(cafe.name)}</div><div class="popup-meta">${escapeHtml(parts.join(' · '))}</div><button class="popup-view" onclick="openCafeProfile('${cafe.id}')">View café</button>`)
-  }
-  q('#cafe-count').textContent=`${data?.length||0} café${data?.length===1?'':'s'}`;
+  currentGroups=(memberships||[]).map(m=>({...m.groups,role:m.role}));
+  const list=q('#groups-list');
+  if(!currentGroups.length){list.innerHTML='<p class="muted">You are not a member of any group yet.</p>';return}
+  list.innerHTML=currentGroups.map(g=>`<button type="button" class="group-choice ${currentGroup?.id===g.id?'active':''}" data-group-id="${g.id}"><span>☕ ${escapeHtml(g.name)}</span><small>${roleLabel(g.role)}</small></button>`).join('');
+  list.querySelectorAll('[data-group-id]').forEach(btn=>btn.addEventListener('click',()=>switchGroup(btn.dataset.groupId)));
 }
-
-async function refreshUI(){
-  const{data:{user}}=await supabase.auth.getUser();currentUser=user;
-  if(!user){currentGroup=null;authCard.classList.remove('hidden');appCard.classList.add('hidden');return}
-  authCard.classList.add('hidden');appCard.classList.remove('hidden');
-  const{data:profile}=await supabase.from('profiles').select('display_name').eq('id',user.id).single();q('#user-name').textContent=profile?.display_name||'Local Kafé member';
-  const{data:memberships,error}=await supabase.from('group_members').select('role, groups(id, name)').eq('user_id',user.id).limit(1);
-  if(error)return showMessage(appMessage,error.message);
-  currentGroup=memberships?.[0]?.groups||null;
-  if(!currentGroup){groupEmpty.classList.remove('hidden');mapView.classList.add('hidden');return}
-  groupEmpty.classList.add('hidden');mapView.classList.remove('hidden');q('#group-label').textContent=currentGroup.name;ensureMap();setTimeout(()=>map.invalidateSize(),80);await loadCafes();
+async function switchGroup(id){const g=currentGroups.find(x=>x.id===id);if(!g)return;currentGroup=g;q('#group-label').textContent=g.name;groupEmpty.classList.add('hidden');mapView.classList.remove('hidden');ensureMap();setTimeout(()=>map.invalidateSize(),80);await loadGroups();await loadCafes()}
+async function renderGroupManagement(){
+  const box=q('#group-management');box.innerHTML='<p class="muted">Loading…</p>';
+  const{data:groups,error}=await supabase.rpc('get_manageable_groups');
+  if(error){box.innerHTML='';return showMessage(appMessage,error.message)}
+  if(!groups?.length){box.innerHTML='<p class="muted">No groups available.</p>';return}
+  box.innerHTML=`<div class="group-admin-list">${groups.map(g=>`<article class="group-admin-card"><div class="section-head"><div><strong>☕ ${escapeHtml(g.name)}</strong><div class="muted">${g.member_count} member${g.member_count===1?'':'s'}</div></div><button type="button" class="secondary group-open-admin" data-id="${g.id}">Manage</button></div><div id="admin-detail-${g.id}" class="admin-detail hidden"></div></article>`).join('')}</div>`;
+  box.querySelectorAll('.group-open-admin').forEach(b=>b.addEventListener('click',()=>loadGroupAdmin(b.dataset.id)));
+  if(isPlatformAdmin)box.insertAdjacentHTML('afterbegin','<p class="muted">🌐 You are a Platform Admin. You can manage groups without being a member of them.</p>');
 }
-
+async function loadGroupAdmin(groupId){
+  const detail=q(`#admin-detail-${groupId}`);if(!detail)return;detail.classList.remove('hidden');detail.innerHTML='<p class="muted">Loading members and requests…</p>';
+  const[{data:members,error:memberError},{data:requests,error:reqError}]=await Promise.all([
+    supabase.from('group_members').select('user_id,role,profiles(display_name)').eq('group_id',groupId).order('role'),
+    supabase.from('group_join_requests').select('id,user_id,status,requested_at,profiles(display_name)').eq('group_id',groupId).eq('status','pending').order('requested_at')
+  ]);
+  if(memberError||reqError){detail.innerHTML=`<p class="message">${escapeHtml((memberError||reqError).message)}</p>`;return}
+  const memberHtml=(members||[]).map(m=>`<div class="admin-row"><div><strong>${escapeHtml(m.profiles?.display_name||'Local Kafé member')}</strong><small>${roleLabel(m.role)}</small></div><div class="admin-actions">${m.role!=='owner'?`<button type="button" class="secondary role-btn" data-group="${groupId}" data-user="${m.user_id}" data-role="${m.role==='admin'?'member':'admin'}">${m.role==='admin'?'Demote':'Make admin'}</button><button type="button" class="ghost remove-btn" data-group="${groupId}" data-user="${m.user_id}">Remove</button>`:''}</div></div>`).join('');
+  const requestHtml=(requests||[]).map(r=>`<div class="admin-row"><div><strong>${escapeHtml(r.profiles?.display_name||'Local Kafé member')}</strong><small>Requested ${new Date(r.requested_at).toLocaleDateString()}</small></div><div class="admin-actions"><button type="button" class="approve-btn" data-request="${r.id}">Accept</button><button type="button" class="ghost reject-btn" data-request="${r.id}">Reject</button></div></div>`).join('');
+  detail.innerHTML=`<h4>Members</h4>${memberHtml||'<p class="muted">No members.</p>'}<h4>Pending requests</h4>${requestHtml||'<p class="muted">No pending requests.</p>'}`;
+  detail.querySelectorAll('.approve-btn').forEach(b=>b.addEventListener('click',async()=>{await adminAction('approve_group_join_request',{request_id:b.dataset.request},groupId)}));
+  detail.querySelectorAll('.reject-btn').forEach(b=>b.addEventListener('click',async()=>{await adminAction('reject_group_join_request',{request_id:b.dataset.request},groupId)}));
+  detail.querySelectorAll('.remove-btn').forEach(b=>b.addEventListener('click',async()=>{if(confirm('Remove this member from the group?'))await adminAction('remove_group_member',{target_group_id:b.dataset.group,target_user_id:b.dataset.user},groupId)}));
+  detail.querySelectorAll('.role-btn').forEach(b=>b.addEventListener('click',async()=>{await adminAction('set_group_member_role',{target_group_id:b.dataset.group,target_user_id:b.dataset.user,new_role:b.dataset.role},groupId)}));
+}
+async function adminAction(fn,args,groupId){const{error}=await supabase.rpc(fn,args);if(error)return showMessage(appMessage,error.message);await renderGroupManagement();await loadGroups();await loadGroupAdmin(groupId);showMessage(appMessage,'Group updated.',true)}
+async function renderJoinOptions(){
+  const box=q('#group-management');box.innerHTML='<p class="muted">Loading groups…</p>';
+  const{data:groups,error}=await supabase.from('groups').select('id,name').order('name');
+  if(error){box.innerHTML='';return showMessage(appMessage,error.message)}
+  const memberIds=new Set(currentGroups.map(g=>g.id));
+  const{data:requests}=await supabase.from('group_join_requests').select('group_id,status').eq('user_id',currentUser.id).eq('status','pending');
+  const pending=new Set((requests||[]).map(r=>r.group_id));
+  box.innerHTML=`<div class="join-list">${(groups||[]).map(g=>`<div class="admin-row"><div><strong>☕ ${escapeHtml(g.name)}</strong></div>${memberIds.has(g.id)?'<span class="muted">Member</span>':pending.has(g.id)?'<span class="muted">Request pending</span>':`<button type="button" class="request-join" data-id="${g.id}">Request to join</button>`}</div>`).join('')||'<p class="muted">No groups found.</p>'}</div>`;
+  box.querySelectorAll('.request-join').forEach(b=>b.addEventListener('click',async()=>{const{error}=await supabase.from('group_join_requests').insert({group_id:b.dataset.id,user_id:currentUser.id});if(error)return showMessage(appMessage,error.message);showMessage(appMessage,'Join request sent.',true);await renderJoinOptions()}));
+}
+async function openGroupManager(){groupDialog.showModal();if(isPlatformAdmin)await renderGroupManagement();else await renderGroupManagement()}
+window.openCafeProfile=async id=>{const c=cafesById[id];if(!c)return;selectedCafeId=id;const t=cafeType(c.category);q('#view-type').textContent=`${t.icon} ${t.label}`;q('#view-name').textContent=c.name;q('#view-icon').textContent=t.icon;q('#view-discovered-by').textContent=c.discovered_by||'Local Kafé';q('#view-added-by').textContent=c.creator_name||'Local Kafé member';q('#view-address').textContent=c.address_text||'Not added';q('#view-landmark').textContent=c.landmark||'Not added';q('#view-coords').textContent=`${Number(c.latitude).toFixed(6)}, ${Number(c.longitude).toFixed(6)}`;q('#visit-note').value='';q('#visit-date').value=new Date().toISOString().slice(0,16);await loadVisits(id);viewDialog.showModal()};
+async function loadVisits(cafeId){const list=q('#visits-list');list.innerHTML='<p class="muted">Loading visits…</p>';const{data,error}=await supabase.from('cafe_visits').select('id,visited_by,visited_at,note,created_at,profiles(display_name)').eq('cafe_id',cafeId).order('visited_at',{ascending:false});if(error){list.innerHTML='';showMessage(appMessage,error.message);return}q('#visit-count').textContent=`${data?.length||0} visit${data?.length===1?'':'s'}`;if(!data?.length){list.innerHTML='<p class="muted">No visits recorded yet. Be the first to log one.</p>';return}list.innerHTML=data.map(v=>{const name=escapeHtml(v.profiles?.display_name||'Local Kafé member');const note=escapeHtml(v.note);const date=new Date(v.visited_at).toLocaleString([], {dateStyle:'medium',timeStyle:'short'});return `<article class="visit-card"><div class="visit-head"><strong>${name}</strong><time>${escapeHtml(date)}</time></div><p>${note}</p></article>`}).join('')}
+async function loadCafes(){if(!currentGroup||!map)return;const{data,error}=await supabase.rpc('get_group_cafes_with_creators',{target_group_id:currentGroup.id});if(error)return showMessage(appMessage,error.message);cafeLayer.clearLayers();cafesById={};for(const cafe of data||[]){cafesById[cafe.id]=cafe;const t=cafeType(cafe.category);const parts=[t.label,cafe.address_text,cafe.landmark?`Near ${cafe.landmark}`:null].filter(Boolean);L.marker([Number(cafe.latitude),Number(cafe.longitude)],{icon:markerIcon(cafe.category)}).addTo(cafeLayer).bindPopup(`<div class="popup-title">${t.icon} ${escapeHtml(cafe.name)}</div><div class="popup-meta">${escapeHtml(parts.join(' · '))}</div><button class="popup-view" onclick="openCafeProfile('${cafe.id}')">View café</button>`) }q('#cafe-count').textContent=`${data?.length||0} café${data?.length===1?'':'s'}`}
+async function refreshUI(){const{data:{user}}=await supabase.auth.getUser();currentUser=user;if(!user){currentGroup=null;currentGroups=[];authCard.classList.remove('hidden');appCard.classList.add('hidden');return}authCard.classList.add('hidden');appCard.classList.remove('hidden');const{data:profile}=await supabase.from('profiles').select('display_name').eq('id',user.id).single();q('#user-name').textContent=profile?.display_name||'Local Kafé member';await checkPlatformAdmin();await loadGroups();if(!currentGroup&&currentGroups.length)currentGroup=currentGroups[0];if(!currentGroup){groupEmpty.classList.remove('hidden');mapView.classList.add('hidden');q('#group-label').textContent='No group selected';return}groupEmpty.classList.add('hidden');mapView.classList.remove('hidden');q('#group-label').textContent=currentGroup.name;ensureMap();setTimeout(()=>map.invalidateSize(),80);await loadCafes()}
 q('#sign-up').addEventListener('click',async()=>{const email=q('#email').value.trim(),password=q('#password').value,displayName=q('#display-name').value.trim();if(!email||password.length<8)return showMessage(authMessage,'Enter a valid email and a password of at least 8 characters.');setBusy(true);const{data,error}=await supabase.auth.signUp({email,password,options:{data:{display_name:displayName||email.split('@')[0]}}});setBusy(false);if(error)return showMessage(authMessage,error.message);if(!data.session)showMessage(authMessage,'Account created. Check your email and confirm your address, then sign in.',true);else await refreshUI()});
 q('#sign-in').addEventListener('click',async()=>{const{error}=await supabase.auth.signInWithPassword({email:q('#email').value.trim(),password:q('#password').value});if(error)return showMessage(authMessage,error.message);await refreshUI()});
 q('#sign-out').addEventListener('click',async()=>{await supabase.auth.signOut();await refreshUI()});
-q('#create-group').addEventListener('click',async()=>{const{error}=await supabase.from('groups').insert({name:q('#group-name').value.trim()||'Kafé Hunters',owner_id:currentUser.id});if(error)return showMessage(appMessage,error.message);await refreshUI()});
-addCafeBtn.addEventListener('click',beginPlacement);q('#placement-cancel').addEventListener('click',cancelPlacement);q('#placement-location').addEventListener('click',()=>useCurrentLocation(true));placementNext.addEventListener('click',openDetailsDialog);
-q('#change-pin').addEventListener('click',()=>{cafeDialog.close();placementMode=true;placementPanel.classList.remove('hidden');addCafeBtn.classList.add('hidden');placementNext.disabled=!selectedLatLng;if(selectedLatLng&&!draftMarker)draftMarker=L.marker([selectedLatLng.lat,selectedLatLng.lng],{draggable:true}).addTo(map)});
-q('#close-dialog').addEventListener('click',()=>{cafeDialog.close();cancelPlacement()});q('#close-view').addEventListener('click',()=>viewDialog.close());q('#close-visit').addEventListener('click',()=>visitDialog.close());q('#locate-btn').addEventListener('click',()=>useCurrentLocation(false));
+q('#create-group').addEventListener('click',async()=>{const name=q('#group-name').value.trim()||'Kafé Hunters';const{data,error}=await supabase.from('groups').insert({name,owner_id:currentUser.id}).select('id,name,owner_id').single();if(error)return showMessage(appMessage,error.message);showMessage(appMessage,'Group created. You are now its owner.',true);await refreshUI()});
+addCafeBtn.addEventListener('click',beginPlacement);q('#placement-cancel').addEventListener('click',cancelPlacement);q('#placement-location').addEventListener('click',()=>useCurrentLocation(true));placementNext.addEventListener('click',openDetailsDialog);q('#change-pin').addEventListener('click',()=>{cafeDialog.close();placementMode=true;placementPanel.classList.remove('hidden');addCafeBtn.classList.add('hidden');placementNext.disabled=!selectedLatLng;if(selectedLatLng&&!draftMarker)draftMarker=L.marker([selectedLatLng.lat,selectedLatLng.lng],{draggable:true}).addTo(map)});q('#close-dialog').addEventListener('click',()=>{cafeDialog.close();cancelPlacement()});q('#close-view').addEventListener('click',()=>viewDialog.close());q('#close-visit').addEventListener('click',()=>visitDialog.close());q('#close-group').addEventListener('click',()=>groupDialog.close());q('#manage-groups-btn').addEventListener('click',openGroupManager);q('#locate-btn').addEventListener('click',()=>useCurrentLocation(false));
 q('#add-visit-btn').addEventListener('click',()=>{q('#visit-note').value='';q('#visit-date').value=new Date().toISOString().slice(0,16);visitDialog.showModal()});
-
 q('#cafe-form').addEventListener('submit',async e=>{e.preventDefault();if(!currentUser||!currentGroup||!selectedLatLng)return;const name=q('#cafe-name').value.trim();if(!name)return showMessage(dialogMessage,'Enter the café name.');setBusy(true);const{error}=await supabase.from('cafes').insert({group_id:currentGroup.id,name,category:q('#cafe-category').value,latitude:selectedLatLng.lat,longitude:selectedLatLng.lng,address_text:q('#cafe-address').value.trim()||null,landmark:q('#cafe-landmark').value.trim()||null,map_source:'manual',created_by:currentUser.id});setBusy(false);if(error)return showMessage(dialogMessage,error.message);cafeDialog.close();e.target.reset();if(draftMarker){draftMarker.remove();draftMarker=null}selectedLatLng=null;placementMode=false;showMessage(appMessage,'Café added to the shared map.',true);await loadCafes()});
-
-q('#visit-form').addEventListener('submit',async e=>{
-  e.preventDefault();if(!currentUser||!selectedCafeId)return;
-  const note=q('#visit-note').value.trim(),date=q('#visit-date').value;
-  if(!note)return showMessage(q('#visit-message'),'Write a note about this visit.');
-  if(!date)return showMessage(q('#visit-message'),'Choose the visit date and time.');
-  q('#save-visit').disabled=true;
-  const{error}=await supabase.from('cafe_visits').insert({cafe_id:selectedCafeId,visited_by:currentUser.id,visited_at:new Date(date).toISOString(),note});
-  q('#save-visit').disabled=false;
-  if(error)return showMessage(q('#visit-message'),error.message);
-  visitDialog.close();showMessage(q('#visit-message'),'');await loadVisits(selectedCafeId);
-});
-
+q('#visit-form').addEventListener('submit',async e=>{e.preventDefault();if(!currentUser||!selectedCafeId)return;const note=q('#visit-note').value.trim(),date=q('#visit-date').value;if(!note)return showMessage(q('#visit-message'),'Write a note about this visit.');if(!date)return showMessage(q('#visit-message'),'Choose the visit date and time.');q('#save-visit').disabled=true;const{error}=await supabase.from('cafe_visits').insert({cafe_id:selectedCafeId,visited_by:currentUser.id,visited_at:new Date(date).toISOString(),note});q('#save-visit').disabled=false;if(error)return showMessage(q('#visit-message'),error.message);visitDialog.close();showMessage(q('#visit-message'),'');await loadVisits(selectedCafeId)});
 supabase.auth.onAuthStateChange(()=>setTimeout(refreshUI,0));
-if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(console.error);
-refreshUI();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(console.error);refreshUI();
